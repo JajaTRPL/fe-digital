@@ -1,48 +1,33 @@
 <?php
 
-use App\Http\Controllers\AddGroundController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\GroundController;
-use App\Http\Controllers\ShowMapController;
-use App\Http\Controllers\ProfileController;
-use App\Models\GroundDetails;
 use Illuminate\Support\Facades\Route;
-use Spatie\Permission\Commands\Show;
 
-Route::get('/login', function () {
-    return view('auth.login');
+// Public Routes - Bisa diakses tanpa login
+Route::view('/', 'welcome'); // Contoh halaman awal
+
+// Auth Routes (View Only)
+Route::middleware('guest')->group(function () {
+    Route::view('register', 'auth.register')->name('register');
+    Route::view('login', 'auth.login')->name('login');
+    Route::view('forgot-password', 'auth.forgot-password')->name('password.request');
+    Route::view('reset-password/{token}', 'auth.reset-password')->name('password.reset');
 });
 
+// Routes yang membutuhkan login
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::view('verify-email', 'auth.verify-email')->name('verification.notice');
+    Route::view('confirm-password', 'auth.confirm-password')->name('password.confirm');
+    Route::view('profile', 'profile.edit')->name('profile.edit');
+    
+    Route::view('/dashboard', 'dashboard')
+        ->middleware(['verified', 'role:superAdmin|admin|guest'])
+        ->name('dashboard');
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'role:superAdmin|admin|guest'])
-    ->name('dashboard');
+// Public API/Features - Contoh route yang bisa diakses tanpa login
+Route::view('/public/map', 'public.map-view')->name('public.map');
+Route::view('/public/info', 'public.general-info')->name('public.info');
+Route::view('/landing-page', 'landing')->name('landing');
 
-Route::get('/ViewPeta', [ShowMapController::class, 'showMap'])->middleware(['auth', 'verified', 'role:guest|superAdmin|admin'])->name('ViewPeta');
-
-Route::get('/ManageGround', [GroundController::class, 'showData'])->middleware(['auth', 'verified', 'role:superAdmin|admin'])->name('ManageGround');
-
-Route::delete('/ManageGround/{id}', [GroundController::class, 'destroy'])->middleware(['auth', 'verified', 'role:superAdmin|admin'])->name('GroundDestroy');
-
-Route::get('/AddGround', [GroundController::class, 'create'])->middleware(['auth', 'verified', 'role:superAdmin|admin'])->name('AddGround');
-
-Route::post('/SaveGround', [GroundController::class, 'store'])->name('SaveGround');
-
-Route::get('/EditPeta/{id}', [GroundController::class, 'edit'])->middleware(['auth', 'verified', 'role:superAdmin|admin'])->name('EditPeta');
-
-Route::put('/UpdatePeta/{id}', [GroundController::class, 'update'])->middleware(['auth', 'verified', 'role:superAdmin|admin'])->name('UpdatePeta');
-
-Route::get('/admin', function () {
-    return view('admin');
-})->middleware(['auth', 'verified', 'role:superAdmin'])->name('admin.dashboard');
-
-Route::get('/restore-data', function () {
-    return view('RestoreData');
-})->name('data.restore');
-
-require __DIR__.'/auth.php';
+// Jika ingin membuat route resource yang public
+Route::view('/public/grounds', 'grounds.public-index')->name('grounds.public');
